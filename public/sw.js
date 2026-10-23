@@ -1,6 +1,6 @@
 // Minimal service worker: makes the app installable and shows a friendly
 // page when there is no internet. Data always comes fresh from the server.
-const CACHE = 'btu-v1'
+const CACHE = 'btu-v2'
 const OFFLINE_URL = '/offline.html'
 const PRECACHE = [OFFLINE_URL, '/icons/icon-192.png']
 

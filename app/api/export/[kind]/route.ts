@@ -1,7 +1,7 @@
 import { isAuthenticated } from '@/lib/auth'
-import { beltLabel, classLabel, trainingLabel } from '@/lib/belts'
 import { exportAttendance, listStudents } from '@/lib/data'
 import { today } from '@/lib/dates'
+import { getT } from '@/lib/locale'
 import { compareNames } from '@/lib/text'
 
 function csv(rows: (string | number | boolean | null)[][]) {
@@ -15,32 +15,36 @@ function csv(rows: (string | number | boolean | null)[][]) {
 
 export async function GET(_req: Request, ctx: { params: Promise<{ kind: string }> }) {
   if (!(await isAuthenticated())) return new Response('Not logged in', { status: 401 })
-  const { kind } = await ctx.params
+  const [{ kind }, t] = await Promise.all([ctx.params, getT()])
+  const c = t.csv
 
   let body: string
+  let name: string
   if (kind === 'students') {
     const students = (await listStudents()).sort((a, b) => compareNames(a.name, b.name))
+    name = c.students
     body = csv([
-      ['Name', 'Belt', 'Stripes', 'Trains', 'Started', 'Total classes', 'Last 30 days', 'Last trained', 'Phone', 'Active', 'Notes'],
+      [c.name, c.belt, c.stripes, c.trains, c.started, c.total, c.last30, c.lastTrained, c.phone, c.active, c.notes],
       ...students.map((s) => [
         s.name,
-        beltLabel(s.belt, 0).replace(' belt', ''),
+        t.beltName(s.belt),
         s.stripes,
-        trainingLabel(s.training_type),
+        t.training(s.training_type),
         s.start_date,
         s.total,
         s.recent,
         s.last_seen,
         s.phone,
-        s.active ? 'yes' : 'no',
+        s.active ? c.yes : c.no,
         s.notes,
       ]),
     ])
   } else if (kind === 'attendance') {
     const rows = await exportAttendance()
+    name = c.attendance
     body = csv([
-      ['Date', 'Class', 'Name', 'Belt', 'Stripes'],
-      ...rows.map((r) => [r.date, classLabel(r.class_type), r.name, beltLabel(r.belt, 0).replace(' belt', ''), r.stripes]),
+      [c.date, c.cls, c.name, c.belt, c.stripes],
+      ...rows.map((r) => [r.date, t.cls(r.class_type), r.name, t.beltName(r.belt), r.stripes]),
     ])
   } else {
     return new Response('Not found', { status: 404 })
@@ -49,7 +53,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ kind: string }
   return new Response(body, {
     headers: {
       'Content-Type': 'text/csv; charset=utf-8',
-      'Content-Disposition': `attachment; filename="btu-${kind}-${today()}.csv"`,
+      'Content-Disposition': `attachment; filename="btu-${name}-${today()}.csv"`,
       'Cache-Control': 'no-store',
     },
   })

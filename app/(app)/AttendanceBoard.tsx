@@ -4,9 +4,10 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 import { Belt } from '@/components/Belt'
+import { useT } from '@/components/I18n'
 import { IconCheck, IconChevronLeft, IconChevronRight, IconPlus, IconSearch } from '@/components/Icons'
-import { CLASS_TYPES, type ClassType, beltLabel, classLabel, trainingLabel, trainsIn } from '@/lib/belts'
-import { addDays, daysBetween, formatDate } from '@/lib/dates'
+import { CLASS_TYPES, type ClassType, trainsIn } from '@/lib/belts'
+import { addDays } from '@/lib/dates'
 import type { RosterStudent } from '@/lib/data'
 import { normalize, sortByName } from '@/lib/text'
 
@@ -20,16 +21,9 @@ type Props = {
   present: string[]
 }
 
-function dayCaption(date: string, today: string) {
-  const d = daysBetween(date, today)
-  if (d === 0) return 'Today'
-  if (d === 1) return 'Yesterday'
-  if (d === -1) return 'Tomorrow'
-  return d > 0 ? `${d} days ago` : `In ${-d} days`
-}
-
 export function AttendanceBoard({ date, today, initialType, students, present }: Props) {
   const router = useRouter()
+  const t = useT()
   const [classType, setClassType] = useState<ClassType>(() => {
     if (initialType) return initialType
     const hasGi = present.some((k) => k.endsWith(':gi'))
@@ -53,16 +47,16 @@ export function AttendanceBoard({ date, today, initialType, students, present }:
 
   useEffect(() => {
     if (!toast) return
-    const t = setTimeout(() => setToast(null), 3500)
-    return () => clearTimeout(t)
+    const timer = setTimeout(() => setToast(null), 3500)
+    return () => clearTimeout(timer)
   }, [toast])
 
-  function chooseClass(t: ClassType) {
-    setClassType(t)
+  function chooseClass(c: ClassType) {
+    setClassType(c)
     try {
-      localStorage.setItem(LAST_CLASS_KEY, t)
+      localStorage.setItem(LAST_CLASS_KEY, c)
     } catch {}
-    window.history.replaceState(null, '', `/?date=${date}&type=${t}`)
+    window.history.replaceState(null, '', `/?date=${date}&type=${c}`)
   }
 
   async function toggle(id: number) {
@@ -92,7 +86,7 @@ export function AttendanceBoard({ date, today, initialType, students, present }:
       if (!res.ok) throw new Error()
     } catch {
       flip(!on)
-      setToast('Could not save. Check your internet connection and try again.')
+      setToast(t.att.saveFailed)
     } finally {
       setPending((p) => {
         const next = new Set(p)
@@ -114,6 +108,7 @@ export function AttendanceBoard({ date, today, initialType, students, present }:
   const q = normalize(query.trim())
   const sorted = useMemo(() => sortByName(students), [students])
   const isOn = (id: number) => checked.has(`${id}:${classType}`)
+  const otherType: ClassType = classType === 'gi' ? 'nogi' : 'gi'
 
   let regulars: RosterStudent[]
   let others: RosterStudent[] = []
@@ -141,9 +136,9 @@ export function AttendanceBoard({ date, today, initialType, students, present }:
             {s.name}
           </span>
           <span className="row-sub">
-            {beltLabel(s.belt, s.stripes)}
-            {!trainsIn(s.training_type, classType) && <span>· {trainingLabel(s.training_type)}</span>}
-            {!s.active && <span className="pill">archived</span>}
+            {t.belt(s.belt, s.stripes)}
+            {!trainsIn(s.training_type, classType) && <span>· {t.training(s.training_type)}</span>}
+            {!s.active && <span className="pill">{t.common.archived}</span>}
           </span>
         </span>
         <span className="check">
@@ -163,10 +158,10 @@ export function AttendanceBoard({ date, today, initialType, students, present }:
           <img src="/icons/icon-192.png" alt="" />
           <div style={{ minWidth: 0 }}>
             <small>Bosnae Teamu United</small>
-            <h1>Attendance</h1>
+            <h1>{t.nav.attendance}</h1>
           </div>
         </div>
-        <Link href={newHref} className="icon-btn" aria-label="Add new student">
+        <Link href={newHref} className="icon-btn" aria-label={t.att.addNew}>
           <IconPlus />
         </Link>
       </header>
@@ -176,35 +171,35 @@ export function AttendanceBoard({ date, today, initialType, students, present }:
           <Link
             className="icon-btn"
             href={`/?date=${addDays(date, -1)}&type=${classType}`}
-            aria-label="Previous day"
+            aria-label={t.att.prevDay}
             replace
           >
             <IconChevronLeft />
           </Link>
           <label className="date-label">
-            <span>{formatDate(date, { weekday: true })}</span>
-            <small>{dayCaption(date, today)}</small>
+            <span>{t.date(date, { weekday: true })}</span>
+            <small>{t.dayCaption(date, today)}</small>
             <input
               type="date"
               value={date}
-              aria-label="Pick a date"
+              aria-label={t.att.pickDate}
               onChange={(e) => e.target.value && router.replace(`/?date=${e.target.value}&type=${classType}`)}
             />
           </label>
           <Link
             className="icon-btn"
             href={`/?date=${addDays(date, 1)}&type=${classType}`}
-            aria-label="Next day"
+            aria-label={t.att.nextDay}
             replace
           >
             <IconChevronRight />
           </Link>
         </div>
 
-        <div className="segmented" role="group" aria-label="Class type">
-          {CLASS_TYPES.map((t) => (
-            <button key={t.id} type="button" aria-pressed={classType === t.id} onClick={() => chooseClass(t.id)}>
-              {t.label} class <span className="count">{counts[t.id]}</span>
+        <div className="segmented" role="group" aria-label={t.att.classType}>
+          {CLASS_TYPES.map((c) => (
+            <button key={c} type="button" aria-pressed={classType === c} onClick={() => chooseClass(c)}>
+              {t.att.classTab(c)} <span className="count">{counts[c]}</span>
             </button>
           ))}
         </div>
@@ -213,24 +208,24 @@ export function AttendanceBoard({ date, today, initialType, students, present }:
           <div>
             <div className="big">{total}</div>
             <div className="muted small">
-              on the mat · {classLabel(classType)}
-              {date !== today && ` · ${formatDate(date, { year: false })}`}
+              {t.att.onTheMat} · {t.cls(classType)}
+              {date !== today && ` · ${t.date(date, { year: false })}`}
             </div>
           </div>
           {date !== today && (
             <Link href={`/?type=${classType}`} className="btn btn-sm" replace>
-              Back to today
+              {t.att.backToToday}
             </Link>
           )}
         </div>
 
         {students.length === 0 ? (
           <div className="card empty">
-            <strong>No students yet</strong>
-            Add your students once, then check them in here every training.
+            <strong>{t.att.emptyTitle}</strong>
+            {t.att.emptyBody}
             <div>
               <Link href="/students/new" className="btn btn-primary">
-                <IconPlus /> Add first student
+                <IconPlus /> {t.att.addFirst}
               </Link>
             </div>
           </div>
@@ -238,11 +233,11 @@ export function AttendanceBoard({ date, today, initialType, students, present }:
           <>
             <label className="search">
               <IconSearch />
-              <span className="sr-only">Search students</span>
+              <span className="sr-only">{t.common.searchStudents}</span>
               <input
                 className="input"
                 type="search"
-                placeholder="Search name…"
+                placeholder={t.common.searchName}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 autoComplete="off"
@@ -251,8 +246,8 @@ export function AttendanceBoard({ date, today, initialType, students, present }:
 
             <section>
               <h2 className="section-title">
-                <span>{q ? 'Results' : `${classLabel(classType)} students`}</span>
-                <span>tap to check in</span>
+                <span>{q ? t.att.results : t.att.group(classType)}</span>
+                <span>{t.att.tapHint}</span>
               </h2>
               {regulars.length ? (
                 <div className="card list">{regulars.map(row)}</div>
@@ -260,13 +255,13 @@ export function AttendanceBoard({ date, today, initialType, students, present }:
                 <div className="card empty">
                   {q ? (
                     <>
-                      <strong>No one called “{query.trim()}”</strong>
+                      <strong>{t.att.noOne(query.trim())}</strong>
                       <Link href={newHref} className="btn btn-primary">
-                        <IconPlus /> Add new student
+                        <IconPlus /> {t.att.addNew}
                       </Link>
                     </>
                   ) : (
-                    <>No students train {classLabel(classType)} only or both. See others below.</>
+                    t.att.noRegulars(classType)
                   )}
                 </div>
               )}
@@ -275,9 +270,9 @@ export function AttendanceBoard({ date, today, initialType, students, present }:
             {others.length > 0 && (
               <section>
                 <h2 className="section-title">
-                  <span>Usually train {classType === 'gi' ? 'No-Gi' : 'Gi'} only</span>
+                  <span>{t.att.others(otherType)}</span>
                   <button type="button" onClick={() => setShowOthers((v) => !v)}>
-                    {showOthers ? 'Hide' : `Show ${others.length}`}
+                    {showOthers ? t.att.hide : t.att.show(others.length)}
                   </button>
                 </h2>
                 {showOthers && <div className="card list">{others.map(row)}</div>}

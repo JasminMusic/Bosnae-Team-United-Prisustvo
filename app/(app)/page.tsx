@@ -1,9 +1,12 @@
 import { requireAuth } from '@/lib/auth'
 import { getRoster } from '@/lib/data'
 import { isIsoDate, today } from '@/lib/dates'
+import { getT } from '@/lib/locale'
 import { AttendanceBoard } from './AttendanceBoard'
 
-export const metadata = { title: 'Attendance' }
+export async function generateMetadata() {
+  return { title: (await getT()).nav.attendance }
+}
 
 export default async function AttendancePage({
   searchParams,

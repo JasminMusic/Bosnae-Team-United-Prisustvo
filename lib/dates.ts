@@ -1,5 +1,6 @@
 // Dates are handled as plain 'YYYY-MM-DD' strings everywhere (Postgres DATE),
 // so there is never any time-zone drift between the phone, server and database.
+// Turning dates into words (per language) lives in lib/i18n.ts.
 
 export const CLUB_TIMEZONE = process.env.CLUB_TIMEZONE || 'Europe/Sarajevo'
 
@@ -36,48 +37,25 @@ export function daysBetween(from: string, to: string) {
   return Math.round((toUtc(to).getTime() - toUtc(from).getTime()) / 86_400_000)
 }
 
-export function formatDate(iso: string | null | undefined, opts?: { weekday?: boolean; year?: boolean }) {
-  if (!iso) return '—'
-  return new Intl.DateTimeFormat('en-GB', {
-    timeZone: 'UTC',
-    weekday: opts?.weekday ? 'short' : undefined,
-    day: 'numeric',
-    month: 'short',
-    year: opts?.year === false ? undefined : 'numeric',
-  }).format(toUtc(iso))
+/** Year, month (0-11), day of month and weekday (0 = Monday). */
+export function dateParts(iso: string) {
+  const d = toUtc(iso)
+  return { year: d.getUTCFullYear(), month: d.getUTCMonth(), day: d.getUTCDate(), weekday: (d.getUTCDay() + 6) % 7 }
 }
 
-export function formatMonth(iso: string) {
-  return new Intl.DateTimeFormat('en-GB', { timeZone: 'UTC', month: 'long', year: 'numeric' }).format(toUtc(iso))
-}
-
-/** "3 yrs 2 mos", "5 mos", "12 days" */
-export function durationSince(from: string, to: string = today()) {
+/** Whole years + months between two dates, or days when under a month. */
+export function diffParts(from: string, to: string) {
   const a = toUtc(from)
   const b = toUtc(to)
-  if (b < a) return 'starts ' + formatDate(from)
   let months = (b.getUTCFullYear() - a.getUTCFullYear()) * 12 + (b.getUTCMonth() - a.getUTCMonth())
   if (b.getUTCDate() < a.getUTCDate()) months--
-  const years = Math.floor(months / 12)
-  const rest = months % 12
-  if (months < 1) {
-    const days = daysBetween(from, to)
-    return `${days} day${days === 1 ? '' : 's'}`
+  return {
+    future: b < a,
+    years: Math.floor(months / 12),
+    months: months % 12,
+    totalMonths: months,
+    days: daysBetween(from, to),
   }
-  const parts: string[] = []
-  if (years) parts.push(`${years} yr${years === 1 ? '' : 's'}`)
-  if (rest) parts.push(`${rest} mo${rest === 1 ? '' : 's'}`)
-  return parts.join(' ')
-}
-
-/** "today", "yesterday", "5 days ago", or a date for anything older than ~2 months */
-export function relativeDay(iso: string | null | undefined, ref: string = today()) {
-  if (!iso) return 'never'
-  const d = daysBetween(iso, ref)
-  if (d === 0) return 'today'
-  if (d === 1) return 'yesterday'
-  if (d > 1 && d < 60) return `${d} days ago`
-  return formatDate(iso)
 }
 
 export function startOfMonth(iso: string) {
@@ -86,6 +64,5 @@ export function startOfMonth(iso: string) {
 
 /** Monday of the week containing `iso`. */
 export function startOfWeek(iso: string) {
-  const dow = (toUtc(iso).getUTCDay() + 6) % 7
-  return addDays(iso, -dow)
+  return addDays(iso, -dateParts(iso).weekday)
 }

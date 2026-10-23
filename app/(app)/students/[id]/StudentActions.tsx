@@ -1,6 +1,7 @@
 'use client'
 
 import { useTransition } from 'react'
+import { useT } from '@/components/I18n'
 import { IconStripe } from '@/components/Icons'
 import { addStripeAction, deletePromotionAction, deleteStudentAction, setActiveAction } from '../actions'
 
@@ -9,10 +10,11 @@ type Props = {
   name: string
   active: boolean
   canAddStripe: boolean
-  stripeWord: string
+  isBlack: boolean
 }
 
-export function StudentActions({ id, name, active, canAddStripe, stripeWord }: Props) {
+export function StudentActions({ id, name, active, canAddStripe, isBlack }: Props) {
+  const t = useT()
   const [pending, start] = useTransition()
 
   return (
@@ -23,10 +25,10 @@ export function StudentActions({ id, name, active, canAddStripe, stripeWord }: P
           className="btn btn-accent"
           disabled={pending}
           onClick={() => {
-            if (confirm(`Give ${name} a ${stripeWord} today?`)) start(() => addStripeAction(id))
+            if (confirm(t.student.addStripeConfirm(name, isBlack))) start(() => addStripeAction(id))
           }}
         >
-          <IconStripe /> Add {stripeWord}
+          <IconStripe /> {t.student.addStripe(isBlack)}
         </button>
       )}
       <button
@@ -34,41 +36,38 @@ export function StudentActions({ id, name, active, canAddStripe, stripeWord }: P
         className="btn"
         disabled={pending}
         onClick={() => {
-          const msg = active
-            ? `Archive ${name}? They will be hidden from attendance, but their history is kept.`
-            : `Restore ${name} to active students?`
+          const msg = active ? t.student.archiveConfirm(name) : t.student.restoreConfirm(name)
           if (confirm(msg)) start(() => setActiveAction(id, !active))
         }}
       >
-        {active ? 'Archive' : 'Restore'}
+        {active ? t.student.archive : t.student.restore}
       </button>
       <button
         type="button"
         className="btn btn-danger"
         disabled={pending}
         onClick={() => {
-          if (confirm(`Permanently delete ${name} and all their attendance? This cannot be undone.\n\nTip: use Archive instead to keep their history.`)) {
-            start(() => deleteStudentAction(id))
-          }
+          if (confirm(t.student.deleteConfirm(name))) start(() => deleteStudentAction(id))
         }}
       >
-        Delete
+        {t.student.delete}
       </button>
     </div>
   )
 }
 
 export function DeletePromotionButton({ studentId, promotionId }: { studentId: number; promotionId: number }) {
+  const t = useT()
   const [pending, start] = useTransition()
   return (
     <button
       type="button"
       className="icon-btn"
       style={{ width: 32, height: 32, border: 0, color: 'var(--muted)' }}
-      aria-label="Remove this promotion entry"
+      aria-label={t.student.removePromotion}
       disabled={pending}
       onClick={() => {
-        if (confirm('Remove this entry from the promotion history?')) start(() => deletePromotionAction(studentId, promotionId))
+        if (confirm(t.student.removePromotionConfirm)) start(() => deletePromotionAction(studentId, promotionId))
       }}
     >
       ×

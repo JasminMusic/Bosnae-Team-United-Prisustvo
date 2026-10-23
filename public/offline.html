@@ -56,9 +56,22 @@
   <body>
     <div>
       <img src="/icons/icon-192.png" alt="" />
-      <h1>No internet connection</h1>
-      <p>The app needs internet to load and save attendance. Check Wi-Fi or mobile data and try again.</p>
-      <button onclick="location.reload()">Try again</button>
+      <h1 id="title">No internet connection</h1>
+      <p id="body">The app needs internet to load and save attendance. Check Wi-Fi or mobile data and try again.</p>
+      <button id="retry" onclick="location.reload()">Try again</button>
     </div>
+    <script>
+      // Same language choice as the app (cookie set by the BS | EN toggle).
+      var m = document.cookie.match(/(?:^|; )btu_lang=(bs|en)/)
+      var bs = m ? m[1] === 'bs' : /^(bs|hr|sr|sh|cnr)\b/i.test(navigator.language || '')
+      if (bs) {
+        document.documentElement.lang = 'bs'
+        document.title = 'Nema interneta · BTU BJJ'
+        document.getElementById('title').textContent = 'Nema internet veze'
+        document.getElementById('body').textContent =
+          'Aplikaciji treba internet da učita i sačuva prisustvo. Provjeri Wi-Fi ili mobilne podatke i pokušaj ponovo.'
+        document.getElementById('retry').textContent = 'Pokušaj ponovo'
+      }
+    </script>
   </body>
 </html>

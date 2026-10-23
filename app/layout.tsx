@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from 'next'
+import { I18nProvider } from '@/components/I18n'
 import { SwRegister } from '@/components/SwRegister'
+import { getLocale } from '@/lib/locale'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -28,11 +30,12 @@ export const viewport: Viewport = {
   ],
 }
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const locale = await getLocale()
   return (
-    <html lang="en">
+    <html lang={locale}>
       <body>
-        {children}
+        <I18nProvider locale={locale}>{children}</I18nProvider>
         <SwRegister />
       </body>
     </html>

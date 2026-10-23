@@ -1,16 +1,16 @@
 'use client'
 
+import { useT } from '@/components/I18n'
+
 export default function AppError({ reset }: { error: Error; reset: () => void }) {
+  const t = useT()
   return (
     <main className="login">
       <div className="card login-card">
-        <h1>Something went wrong</h1>
-        <p className="muted">
-          The app couldn’t load data. Check your internet connection. If it keeps happening, check that the
-          database is connected in Vercel.
-        </p>
+        <h1>{t.failure.title}</h1>
+        <p className="muted">{t.failure.body}</p>
         <button className="btn btn-primary" onClick={() => reset()}>
-          Try again
+          {t.common.tryAgain}
         </button>
       </div>
     </main>

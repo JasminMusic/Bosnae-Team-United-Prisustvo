@@ -3,10 +3,19 @@ import { notFound } from 'next/navigation'
 import { Belt } from '@/components/Belt'
 import { IconChevronLeft, IconEdit, IconPhone } from '@/components/Icons'
 import { requireAuth } from '@/lib/auth'
-import { beltLabel, classLabel, getBelt, trainingLabel } from '@/lib/belts'
+import { getBelt } from '@/lib/belts'
 import { getAttendanceHistory, getPromotions, getStudent, getStudentStats } from '@/lib/data'
-import { durationSince, formatDate, formatMonth, relativeDay, today } from '@/lib/dates'
+import { today } from '@/lib/dates'
+import { getT } from '@/lib/locale'
 import { DeletePromotionButton, StudentActions } from './StudentActions'
+
+const HISTORY_LIMIT = 120
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+  const id = Number((await params).id)
+  const student = Number.isInteger(id) ? await getStudent(id) : null
+  return { title: student?.name ?? (await getT()).notFound.title }
+}
 
 export default async function StudentPage({ params }: { params: Promise<{ id: string }> }) {
   await requireAuth()
@@ -14,10 +23,11 @@ export default async function StudentPage({ params }: { params: Promise<{ id: st
   const student = Number.isInteger(id) ? await getStudent(id) : null
   if (!student) notFound()
 
-  const [stats, promotions, history] = await Promise.all([
+  const [stats, promotions, history, t] = await Promise.all([
     getStudentStats(id),
     getPromotions(id),
-    getAttendanceHistory(id, 120),
+    getAttendanceHistory(id, HISTORY_LIMIT),
+    getT(),
   ])
   const now = today()
 
@@ -30,12 +40,12 @@ export default async function StudentPage({ params }: { params: Promise<{ id: st
   return (
     <>
       <header className="topbar">
-        <Link href="/students" className="back" aria-label="Back to students">
+        <Link href="/students" className="back" aria-label={t.student.backToList}>
           <IconChevronLeft />
         </Link>
         <h1>{student.name}</h1>
         <Link href={`/students/${id}/edit`} className="btn btn-sm">
-          <IconEdit /> Edit
+          <IconEdit /> {t.common.edit}
         </Link>
       </header>
 
@@ -45,60 +55,60 @@ export default async function StudentPage({ params }: { params: Promise<{ id: st
           <div>
             <h2>{student.name}</h2>
             <div className="row-sub" style={{ fontSize: '0.9rem' }}>
-              <span>{beltLabel(student.belt, student.stripes)}</span>
-              <span className={`pill pill-${student.training_type}`}>{trainingLabel(student.training_type)}</span>
-              {!student.active && <span className="pill">Archived</span>}
+              <span>{t.belt(student.belt, student.stripes)}</span>
+              <span className={`pill pill-${student.training_type}`}>{t.training(student.training_type)}</span>
+              {!student.active && <span className="pill">{t.student.archived}</span>}
             </div>
           </div>
           <div className="muted small">
-            Training since <b style={{ color: 'var(--text)' }}>{formatDate(student.start_date)}</b> ·{' '}
-            {durationSince(student.start_date, now)}
+            {t.student.trainingSince} <b style={{ color: 'var(--text)' }}>{t.date(student.start_date)}</b> ·{' '}
+            {t.duration(student.start_date, now)}
           </div>
         </div>
 
         <div className="card stat-grid">
           <div className="stat">
             <b>{stats.total}</b>
-            <span>Total classes</span>
+            <span>{t.student.total}</span>
           </div>
           <div className="stat">
             <b>{stats.recent}</b>
-            <span>Last 30 days</span>
+            <span>{t.student.last30}</span>
           </div>
           <div className="stat">
             <b>{stats.this_month}</b>
-            <span>This month</span>
+            <span>{t.student.thisMonth}</span>
           </div>
           <div className="stat">
             <b>{stats.gi}</b>
-            <span>Gi</span>
+            <span>{t.cls('gi')}</span>
           </div>
           <div className="stat">
             <b>{stats.nogi}</b>
-            <span>No-Gi</span>
+            <span>{t.cls('nogi')}</span>
           </div>
           <div className="stat">
             <b>{stats.since_promotion}</b>
-            <span>Since promotion</span>
+            <span>{t.student.sincePromotion}</span>
           </div>
         </div>
 
         <dl className="card kv" style={{ margin: 0 }}>
           <div>
-            <dt>Last trained</dt>
-            <dd>{relativeDay(stats.last_seen, now)}</dd>
+            <dt>{t.student.lastTrained}</dt>
+            <dd>{t.relDay(stats.last_seen, now)}</dd>
           </div>
           <div>
-            <dt>Last promotion</dt>
+            <dt>{t.student.lastPromotion}</dt>
             <dd>
               {stats.last_promotion
-                ? `${formatDate(stats.last_promotion)} (${durationSince(stats.last_promotion, now)} ago)`
+                ? `${t.date(stats.last_promotion)} (${t.student.ago(t.duration(stats.last_promotion, now))})`
                 : '—'}
             </dd>
           </div>
           {student.phone && (
             <div>
-              <dt>Phone</dt>
+              <dt>{t.student.phone}</dt>
               <dd>
                 <a href={`tel:${student.phone.replace(/[^\d+]/g, '')}`}>
                   <IconPhone style={{ width: 15, height: 15, verticalAlign: -2, marginRight: 4 }} />
@@ -111,7 +121,7 @@ export default async function StudentPage({ params }: { params: Promise<{ id: st
 
         {student.notes && (
           <section>
-            <h2 className="section-title">Notes</h2>
+            <h2 className="section-title">{t.student.notes}</h2>
             <div className="card notes">{student.notes}</div>
           </section>
         )}
@@ -120,22 +130,22 @@ export default async function StudentPage({ params }: { params: Promise<{ id: st
           id={id}
           active={student.active}
           canAddStripe={student.stripes < getBelt(student.belt).maxStripes}
-          stripeWord={student.belt === 'black' ? 'degree' : 'stripe'}
+          isBlack={student.belt === 'black'}
           name={student.name}
         />
 
         <section>
-          <h2 className="section-title">Promotion history</h2>
+          <h2 className="section-title">{t.student.promotions}</h2>
           <div className="card list">
-            {promotions.length === 0 && <div className="empty">No promotions recorded.</div>}
+            {promotions.length === 0 && <div className="empty">{t.student.noPromotions}</div>}
             {promotions.map((p) => (
               <div key={p.id} className="row" style={{ minHeight: 52 }}>
                 <Belt belt={p.belt} stripes={p.stripes} size="sm" />
                 <span className="row-main">
                   <span className="row-title" style={{ display: 'block', fontWeight: 600 }}>
-                    {beltLabel(p.belt, p.stripes)}
+                    {t.belt(p.belt, p.stripes)}
                   </span>
-                  <span className="row-sub">{formatDate(p.date)}</span>
+                  <span className="row-sub">{t.date(p.date)}</span>
                 </span>
                 {promotions.length > 1 && <DeletePromotionButton studentId={id} promotionId={p.id} />}
               </div>
@@ -145,18 +155,16 @@ export default async function StudentPage({ params }: { params: Promise<{ id: st
 
         <section>
           <h2 className="section-title">
-            <span>Attendance</span>
-            {history.length >= 120 && <span>latest 120</span>}
+            <span>{t.student.attendance}</span>
+            {history.length >= HISTORY_LIMIT && <span>{t.student.latest(HISTORY_LIMIT)}</span>}
           </h2>
           <div className="card">
-            {history.length === 0 && <div className="empty">No classes recorded yet.</div>}
+            {history.length === 0 && <div className="empty">{t.student.noClasses}</div>}
             {[...months].map(([month, entries]) => (
               <div key={month} className="month-group">
                 <header>
-                  <span>{formatMonth(month + '-01')}</span>
-                  <span className="muted">
-                    {entries.length} {entries.length === 1 ? 'class' : 'classes'}
-                  </span>
+                  <span>{t.month(month + '-01')}</span>
+                  <span className="muted">{t.student.classes(entries.length)}</span>
                 </header>
                 <div className="day-chips">
                   {entries.map((e) => (
@@ -165,7 +173,7 @@ export default async function StudentPage({ params }: { params: Promise<{ id: st
                       href={`/?date=${e.date}&type=${e.class_type}`}
                       className={`pill pill-${e.class_type}`}
                     >
-                      {formatDate(e.date, { weekday: true, year: false })} · {classLabel(e.class_type)}
+                      {t.date(e.date, { weekday: true, year: false })} · {t.cls(e.class_type)}
                     </Link>
                   ))}
                 </div>

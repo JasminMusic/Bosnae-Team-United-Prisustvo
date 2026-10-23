@@ -3,30 +3,31 @@
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import { Belt } from '@/components/Belt'
+import { useT } from '@/components/I18n'
 import { IconChevronRight, IconPlus, IconSearch } from '@/components/Icons'
-import { BELTS, beltLabel, beltRank, trainingLabel } from '@/lib/belts'
-import { durationSince, relativeDay } from '@/lib/dates'
+import { BELTS, beltRank } from '@/lib/belts'
 import type { StudentWithStats } from '@/lib/data'
 import { compareNames, normalize } from '@/lib/text'
 
 type Filter = 'all' | 'gi' | 'nogi' | 'both' | 'archived'
 type Sort = 'name' | 'belt' | 'start' | 'last'
 
-const FILTERS: { id: Filter; label: string }[] = [
-  { id: 'all', label: 'All' },
-  { id: 'gi', label: 'Gi' },
-  { id: 'nogi', label: 'No-Gi' },
-  { id: 'both', label: 'Both' },
-  { id: 'archived', label: 'Archived' },
-]
-
 const PREFS_KEY = 'btu:studentListPrefs'
 
 export function StudentList({ students, today }: { students: StudentWithStats[]; today: string }) {
+  const t = useT()
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState<Filter>('all')
   const [belt, setBelt] = useState('')
   const [sort, setSort] = useState<Sort>('name')
+
+  const filters: { id: Filter; label: string }[] = [
+    { id: 'all', label: t.list.all },
+    { id: 'gi', label: t.cls('gi') },
+    { id: 'nogi', label: t.cls('nogi') },
+    { id: 'both', label: t.list.both },
+    { id: 'archived', label: t.list.archived },
+  ]
 
   useEffect(() => {
     try {
@@ -68,11 +69,11 @@ export function StudentList({ students, today }: { students: StudentWithStats[];
   if (students.length === 0) {
     return (
       <div className="card empty">
-        <strong>No students yet</strong>
-        Add everyone who trains at the club: belt, Gi / No-Gi and the date they started.
+        <strong>{t.att.emptyTitle}</strong>
+        {t.list.emptyBody}
         <div>
           <Link href="/students/new" className="btn btn-primary">
-            <IconPlus /> Add first student
+            <IconPlus /> {t.att.addFirst}
           </Link>
         </div>
       </div>
@@ -83,44 +84,42 @@ export function StudentList({ students, today }: { students: StudentWithStats[];
     <>
       <label className="search">
         <IconSearch />
-        <span className="sr-only">Search students</span>
+        <span className="sr-only">{t.common.searchStudents}</span>
         <input
           className="input"
           type="search"
-          placeholder="Search name…"
+          placeholder={t.common.searchName}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           autoComplete="off"
         />
       </label>
 
-      <div className="chips" role="group" aria-label="Filter">
-        {FILTERS.map((f) => (
+      <div className="chips" role="group" aria-label={t.list.filter}>
+        {filters.map((f) => (
           <button key={f.id} type="button" className="chip" aria-pressed={filter === f.id} onClick={() => setFilter(f.id)}>
             {f.label}
           </button>
         ))}
-        <select className="chip" value={belt} onChange={(e) => setBelt(e.target.value)} aria-label="Filter by belt">
-          <option value="">All belts</option>
+        <select className="chip" value={belt} onChange={(e) => setBelt(e.target.value)} aria-label={t.list.filterBelt}>
+          <option value="">{t.list.allBelts}</option>
           {BELTS.filter((b) => beltsInUse.has(b.id)).map((b) => (
             <option key={b.id} value={b.id}>
-              {b.label}
+              {t.beltName(b.id)}
             </option>
           ))}
         </select>
-        <select className="chip" value={sort} onChange={(e) => changeSort(e.target.value as Sort)} aria-label="Sort by">
-          <option value="name">Sort: Name</option>
-          <option value="belt">Sort: Belt</option>
-          <option value="start">Sort: Longest training</option>
-          <option value="last">Sort: Last trained</option>
+        <select className="chip" value={sort} onChange={(e) => changeSort(e.target.value as Sort)} aria-label={t.list.sortBy}>
+          <option value="name">{t.list.sortName}</option>
+          <option value="belt">{t.list.sortBelt}</option>
+          <option value="start">{t.list.sortStart}</option>
+          <option value="last">{t.list.sortLast}</option>
         </select>
       </div>
 
       <section>
         <h2 className="section-title">
-          <span>
-            {visible.length} {visible.length === 1 ? 'student' : 'students'}
-          </span>
+          <span>{t.list.count(visible.length)}</span>
         </h2>
         {visible.length ? (
           <div className="card list">
@@ -132,20 +131,20 @@ export function StudentList({ students, today }: { students: StudentWithStats[];
                     {s.name}
                   </span>
                   <span className="row-sub">
-                    <span>{beltLabel(s.belt, s.stripes).replace(' belt', '')}</span>
-                    <span className={`pill pill-${s.training_type}`}>{trainingLabel(s.training_type)}</span>
+                    <span>{t.beltShort(s.belt, s.stripes)}</span>
+                    <span className={`pill pill-${s.training_type}`}>{t.training(s.training_type)}</span>
                   </span>
                 </span>
                 <span className="row-end">
-                  <strong>{durationSince(s.start_date, today)}</strong>
-                  {relativeDay(s.last_seen, today)}
+                  <strong>{t.duration(s.start_date, today)}</strong>
+                  {t.relDay(s.last_seen, today)}
                 </span>
                 <IconChevronRight className="chevron" />
               </Link>
             ))}
           </div>
         ) : (
-          <div className="card empty">No students match these filters.</div>
+          <div className="card empty">{t.list.noMatch}</div>
         )}
       </section>
     </>

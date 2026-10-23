@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { formatDate } from '@/lib/dates'
+import { useT } from '@/components/I18n'
 
 type Week = { week: string; gi: number; nogi: number }
 
@@ -13,6 +13,7 @@ const GAP = 2 // surface gap between stacked segments
 
 /** Stacked weekly check-ins, Gi (bottom) + No-Gi (top). Tap a bar for its numbers. */
 export function WeeklyChart({ weeks }: { weeks: Week[] }) {
+  const t = useT()
   const [selected, setSelected] = useState<number | null>(null)
   const max = Math.max(4, ...weeks.map((w) => w.gi + w.nogi))
   const step = niceStep(max)
@@ -29,25 +30,25 @@ export function WeeklyChart({ weeks }: { weeks: Week[] }) {
   return (
     <div className="card chart">
       <div className="chart-head">
-        <h3>Check-ins per week</h3>
+        <h3>{t.stats.chartTitle}</h3>
         <div className="legend" aria-hidden="true">
           <span>
             <i style={{ background: 'var(--series-gi)' }} />
-            Gi
+            {t.cls('gi')}
           </span>
           <span>
             <i style={{ background: 'var(--series-nogi)' }} />
-            No-Gi
+            {t.cls('nogi')}
           </span>
         </div>
       </div>
 
-      <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Weekly check-ins for the last 12 weeks">
-        {ticks.map((t) => (
-          <g key={t}>
-            <line className="grid-line" x1={PAD_L} x2={W} y1={y(t)} y2={y(t)} />
-            <text className="axis-label" x={PAD_L - 6} y={y(t) + 3} textAnchor="end">
-              {t}
+      <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={t.stats.chartLabel}>
+        {ticks.map((v) => (
+          <g key={v}>
+            <line className="grid-line" x1={PAD_L} x2={W} y1={y(v)} y2={y(v)} />
+            <text className="axis-label" x={PAD_L - 6} y={y(v) + 3} textAnchor="end">
+              {v}
             </text>
           </g>
         ))}
@@ -70,7 +71,7 @@ export function WeeklyChart({ weeks }: { weeks: Week[] }) {
               )}
               {label && (
                 <text className="axis-label" x={cx} y={H - 4} textAnchor="middle">
-                  {formatDate(w.week, { year: false })}
+                  {t.date(w.week, { year: false })}
                 </text>
               )}
               <rect
@@ -82,7 +83,7 @@ export function WeeklyChart({ weeks }: { weeks: Week[] }) {
                 onClick={() => setSelected(selected === i ? null : i)}
                 onMouseEnter={() => setSelected(i)}
               >
-                <title>{`Week of ${formatDate(w.week)}: ${w.gi} Gi, ${w.nogi} No-Gi`}</title>
+                <title>{t.stats.barTitle(t.date(w.week), w.gi, w.nogi)}</title>
               </rect>
             </g>
           )
@@ -90,24 +91,24 @@ export function WeeklyChart({ weeks }: { weeks: Week[] }) {
       </svg>
 
       <div className="chart-readout" aria-live="polite">
-        Week of {formatDate(sw.week, { year: false })}: <b>{sw.gi + sw.nogi}</b> check-ins ({sw.gi} Gi · {sw.nogi} No-Gi)
+        {t.stats.readout(t.date(sw.week, { year: false }), sw.gi + sw.nogi, sw.gi, sw.nogi)}
       </div>
 
       <details className="more" style={{ marginTop: 8 }}>
-        <summary>View as table</summary>
+        <summary>{t.stats.table}</summary>
         <table className="data-table">
           <thead>
             <tr>
-              <th>Week of</th>
-              <th>Gi</th>
-              <th>No-Gi</th>
-              <th>Total</th>
+              <th>{t.stats.weekOf}</th>
+              <th>{t.cls('gi')}</th>
+              <th>{t.cls('nogi')}</th>
+              <th>{t.stats.total}</th>
             </tr>
           </thead>
           <tbody>
             {[...weeks].reverse().map((w) => (
               <tr key={w.week}>
-                <td>{formatDate(w.week)}</td>
+                <td>{t.date(w.week)}</td>
                 <td>{w.gi}</td>
                 <td>{w.nogi}</td>
                 <td>{w.gi + w.nogi}</td>

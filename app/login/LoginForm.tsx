@@ -1,14 +1,16 @@
 'use client'
 
 import { useActionState } from 'react'
+import { useT } from '@/components/I18n'
 import { login } from './actions'
 
 export function LoginForm() {
+  const t = useT()
   const [state, action, pending] = useActionState(login, null)
   return (
     <form action={action}>
       <label className="field">
-        <span>Coach password</span>
+        <span>{t.login.password}</span>
         <input
           className="input"
           type="password"
@@ -18,9 +20,13 @@ export function LoginForm() {
           autoFocus
         />
       </label>
-      {state?.error && <p className="notice" role="alert">{state.error}</p>}
+      {state?.error && (
+        <p className="notice" role="alert">
+          {t.errors[state.error]}
+        </p>
+      )}
       <button className="btn btn-primary btn-block" disabled={pending}>
-        {pending ? 'Checking…' : 'Log in'}
+        {pending ? t.login.checking : t.login.submit}
       </button>
     </form>
   )

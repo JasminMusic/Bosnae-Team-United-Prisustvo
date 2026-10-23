@@ -7,26 +7,27 @@ import { getBelt, isBelt, isClassType, isTrainingType } from '@/lib/belts'
 import * as data from '@/lib/data'
 import { isIsoDate, today } from '@/lib/dates'
 
-export type FormState = { error?: string } | null
+export type FormError = 'name' | 'belt' | 'stripes' | 'training' | 'start' | 'save'
+export type FormState = { error?: FormError } | null
 
 function text(formData: FormData, key: string, max: number) {
   const v = String(formData.get(key) ?? '').trim()
   return v ? v.slice(0, max) : null
 }
 
-function parseStudent(formData: FormData): data.StudentInput | string {
+function parseStudent(formData: FormData): data.StudentInput | FormError {
   const name = text(formData, 'name', 120)
-  if (!name) return 'Please enter the student’s name.'
+  if (!name) return 'name'
   const belt = String(formData.get('belt') ?? '')
-  if (!isBelt(belt)) return 'Please choose a belt.'
+  if (!isBelt(belt)) return 'belt'
   const stripes = Number(formData.get('stripes') ?? 0)
   if (!Number.isInteger(stripes) || stripes < 0 || stripes > getBelt(belt).maxStripes) {
-    return 'Invalid number of stripes for this belt.'
+    return 'stripes'
   }
   const training = String(formData.get('training_type') ?? '')
-  if (!isTrainingType(training)) return 'Please choose Gi, No-Gi or both.'
+  if (!isTrainingType(training)) return 'training'
   const start = String(formData.get('start_date') ?? '')
-  if (!isIsoDate(start)) return 'Please enter the date they started training.'
+  if (!isIsoDate(start)) return 'start'
   return {
     name,
     phone: text(formData, 'phone', 40),
@@ -60,7 +61,7 @@ export async function createStudentAction(_prev: FormState, formData: FormData):
     }
   } catch (err) {
     console.error(err)
-    return { error: 'Could not save. Please try again.' }
+    return { error: 'save' }
   }
   revalidatePath('/', 'layout')
   if (isClassType(checkin) && isIsoDate(checkinDate)) redirect(`/?date=${checkinDate}&type=${checkin}`)
@@ -75,7 +76,7 @@ export async function updateStudentAction(id: number, _prev: FormState, formData
     await data.updateStudent(id, input, dateOr(formData, 'promotion_date', today()))
   } catch (err) {
     console.error(err)
-    return { error: 'Could not save. Please try again.' }
+    return { error: 'save' }
   }
   revalidatePath('/', 'layout')
   redirect(`/students/${id}`)

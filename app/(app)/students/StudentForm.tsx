@@ -2,8 +2,8 @@
 
 import { startTransition, useActionState, useState } from 'react'
 import { Belt } from '@/components/Belt'
-import { BELTS, TRAINING_TYPES, type ClassType, classLabel, getBelt } from '@/lib/belts'
-import { formatDate } from '@/lib/dates'
+import { useT } from '@/components/I18n'
+import { BELTS, TRAINING_TYPES, type ClassType, getBelt } from '@/lib/belts'
 import type { Student } from '@/lib/data'
 import type { FormState } from './actions'
 
@@ -18,6 +18,7 @@ const ADULT = BELTS.filter((b) => b.group === 'adult')
 const KIDS = BELTS.filter((b) => b.group === 'kids')
 
 export function StudentForm({ action, student, today, checkin }: Props) {
+  const t = useT()
   const editing = Boolean(student)
   const [state, formAction, pending] = useActionState(action, null)
   const [belt, setBelt] = useState(student?.belt ?? 'white')
@@ -54,7 +55,7 @@ export function StudentForm({ action, student, today, checkin }: Props) {
       />
       <label htmlFor={`belt-${b.id}`}>
         <Belt belt={b.id} size="sm" />
-        {b.label}
+        {t.beltName(b.id)}
       </label>
     </div>
   )
@@ -70,7 +71,7 @@ export function StudentForm({ action, student, today, checkin }: Props) {
 
       <div className="card card-pad form">
         <label className="field">
-          <span>Full name *</span>
+          <span>{t.form.name}</span>
           <input
             className="input"
             name="name"
@@ -84,25 +85,25 @@ export function StudentForm({ action, student, today, checkin }: Props) {
         </label>
 
         <fieldset className="field">
-          <legend>Trains</legend>
+          <legend>{t.form.trains}</legend>
           <div className="segmented">
-            {TRAINING_TYPES.map((t) => (
-              <div key={t.id}>
+            {TRAINING_TYPES.map((id) => (
+              <div key={id}>
                 <input
                   type="radio"
                   name="training_type"
-                  id={`tt-${t.id}`}
-                  value={t.id}
-                  defaultChecked={(student?.training_type ?? 'both') === t.id}
+                  id={`tt-${id}`}
+                  value={id}
+                  defaultChecked={(student?.training_type ?? 'both') === id}
                 />
-                <label htmlFor={`tt-${t.id}`}>{t.label}</label>
+                <label htmlFor={`tt-${id}`}>{t.training(id)}</label>
               </div>
             ))}
           </div>
         </fieldset>
 
         <label className="field">
-          <span>Started training *</span>
+          <span>{t.form.started}</span>
           <input
             className="input"
             type="date"
@@ -116,21 +117,19 @@ export function StudentForm({ action, student, today, checkin }: Props) {
       </div>
 
       <div className="card card-pad form">
-        <div style={{ display: 'grid', gap: 10 }}>
-          <Belt belt={belt} stripes={stripes} size="lg" />
-        </div>
+        <Belt belt={belt} stripes={stripes} size="lg" />
 
         <fieldset className="field">
-          <legend>Belt</legend>
+          <legend>{t.form.belt}</legend>
           <div className="belt-picker">{ADULT.map(beltOption)}</div>
           <details className="more" open={kidsOpen || undefined}>
-            <summary>Kids belts (under 16) ▾</summary>
+            <summary>{t.form.kidsBelts}</summary>
             <div className="belt-picker">{KIDS.map(beltOption)}</div>
           </details>
         </fieldset>
 
         <fieldset className="field">
-          <legend>{belt === 'black' ? 'Degrees' : 'Stripes'}</legend>
+          <legend>{belt === 'black' ? t.form.degrees : t.form.stripes}</legend>
           <div className="segmented">
             {Array.from({ length: maxStripes + 1 }, (_, n) => (
               <div key={n}>
@@ -150,7 +149,7 @@ export function StudentForm({ action, student, today, checkin }: Props) {
 
         {!editing && (
           <label className="field">
-            <span>Has this belt since</span>
+            <span>{t.form.beltSince}</span>
             <input
               className="input"
               type="date"
@@ -159,22 +158,22 @@ export function StudentForm({ action, student, today, checkin }: Props) {
               max={today}
               onChange={(e) => setBeltSince(e.target.value)}
             />
-            <small>Used for “classes since last promotion”. Leave as is if you don’t know.</small>
+            <small>{t.form.beltSinceHint}</small>
           </label>
         )}
 
         {promoted && (
           <label className="field">
-            <span>Promotion date</span>
+            <span>{t.form.promotionDate}</span>
             <input className="input" type="date" name="promotion_date" defaultValue={today} max={today} />
-            <small>Belt or stripes changed, so this will be saved in the promotion history.</small>
+            <small>{t.form.promotionHint}</small>
           </label>
         )}
       </div>
 
       <div className="card card-pad form">
         <label className="field">
-          <span>Phone</span>
+          <span>{t.form.phone}</span>
           <input
             className="input"
             type="tel"
@@ -186,32 +185,32 @@ export function StudentForm({ action, student, today, checkin }: Props) {
           />
         </label>
         <label className="field">
-          <span>Notes</span>
+          <span>{t.form.notes}</span>
           <textarea
             className="input"
             name="notes"
             defaultValue={student?.notes ?? ''}
             maxLength={2000}
-            placeholder="Injuries, competition goals, parent contact…"
+            placeholder={t.form.notesPlaceholder}
           />
         </label>
       </div>
 
       {state?.error && (
         <p className="notice" role="alert">
-          {state.error}
+          {t.errors[state.error]}
         </p>
       )}
 
       <div className="form-actions">
         <button className="btn btn-primary btn-block" disabled={pending}>
           {pending
-            ? 'Saving…'
+            ? t.form.saving
             : editing
-              ? 'Save changes'
+              ? t.form.save
               : checkin
-                ? `Add & check in to ${classLabel(checkin.type)} (${formatDate(checkin.date, { year: false })})`
-                : 'Add student'}
+                ? t.form.createAndCheckin(checkin.type, t.date(checkin.date, { year: false }))
+                : t.form.create}
         </button>
       </div>
     </form>

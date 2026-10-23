@@ -1,13 +1,15 @@
 import Link from 'next/link'
+import { getT } from '@/lib/locale'
 
-export default function NotFound() {
+export default async function NotFound() {
+  const t = await getT()
   return (
     <main className="login">
       <div className="card login-card">
-        <h1>Not found</h1>
-        <p className="muted">This page or student doesn’t exist (maybe it was deleted).</p>
+        <h1>{t.notFound.title}</h1>
+        <p className="muted">{t.notFound.body}</p>
         <Link href="/" className="btn btn-primary">
-          Go to attendance
+          {t.notFound.home}
         </Link>
       </div>
     </main>

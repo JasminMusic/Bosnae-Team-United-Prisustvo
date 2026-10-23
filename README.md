@@ -9,6 +9,7 @@ A mobile app for **Bosnae Teamu United Brazilian Jiu-Jitsu** for tracking:
 - **Promotions:** the history of belts and stripes, and classes since the last promotion.
 - **Stats:** check-ins per week, belt breakdown, top attendees, and who hasn't trained for 3+ weeks.
 - **CSV export** of students and attendance (opens in Excel or Google Sheets).
+- **Bosanski / English:** switch the language any time with the **BS | EN** toggle.
 
 It works on **iPhone and Android** as an installable web app (PWA). You open it once in the
 browser, tap **Add to Home Screen**, and it then opens full-screen with its own icon, like a normal app.
@@ -76,6 +77,9 @@ You stay logged in for 6 months on each phone.
 - **Student stopped coming?** Use **Archive** rather than Delete. They disappear from the attendance
   list but their history stays. **Restore** brings them back.
 - **Backups:** Stats tab → **Students CSV** / **Attendance CSV**. Doing this once a month is a good habit.
+- **Language:** tap **BS | EN** at the top of the **Stats** tab (or on the login screen). Each phone
+  remembers its own choice. Before anyone picks, the app follows the phone's language: phones set to
+  Bosnian, Croatian or Serbian get Bosnian, and everything else gets English. CSV exports use the chosen language too.
 
 ### Changing the password
 Change `APP_PASSWORD` in Vercel → Settings → Environment Variables, then redeploy.
@@ -113,6 +117,8 @@ npm run build && npm start   # production build
 | `app/api/export/[kind]` | CSV export |
 | `lib/data.ts` | all SQL queries |
 | `lib/belts.ts` | belt definitions (IBJJF order) |
+| `lib/i18n.ts` | every text in English and Bosnian (with Bosnian plurals and date formats) |
+| `lib/locale.ts`, `components/I18n.tsx`, `components/LanguageToggle.tsx` | language choice (cookie `btu_lang`) |
 | `lib/session.ts`, `lib/auth.ts`, `proxy.ts` | password login (signed cookie) |
 | `public/sw.js`, `app/manifest.ts` | PWA (installable, offline page) |
 
